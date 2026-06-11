@@ -8,6 +8,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
+| v3.19.0 | [`v3.19.0`](https://github.com/chainguard-actions/DeterminateSystems-determinate-nix-action/tree/v3.19.0) | [`f4c468f`](https://github.com/DeterminateSystems/determinate-nix-action/commit/f4c468f2287f0f14a113841b41f2dc8957119519) |
 | v3.21.1 | [`v3.21.1`](https://github.com/chainguard-actions/DeterminateSystems-determinate-nix-action/tree/v3.21.1) | [`9adf02b`](https://github.com/DeterminateSystems/determinate-nix-action/commit/9adf02b41cfdac2632e1c16f0480ff5bf3b05dd6) |
 
 ## Privacy
