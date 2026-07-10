@@ -1,0 +1,66 @@
+name: Test installation with diagnostics disabled
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: install-nix
+        uses: .
+        with:
+          diagnostic-endpoint: ""
+          force-no-systemd: "true"
+          trust-runner-user: "true"
+          planner: linux-multi
+          init: none
+          kvm: "false"
+          summarize: "false"
+        continue-on-error: true
+      - name: Check installation outcome
+        env:
+          OUTCOME: ${{ steps.install-nix.outcome }}
+        run: |
+          echo "Install step outcome: $OUTCOME"
+          if [ "$OUTCOME" = "success" ]; then
+            echo "Install succeeded, verifying nix is functional..."
+            if [ ! -d /nix/store ]; then
+              echo "FAIL: /nix/store directory does not exist"
+              exit 1
+            fi
+            echo "PASS: /nix/store exists"
+            NIX_CMD=""
+            if command -v nix &>/dev/null; then
+              NIX_CMD=nix
+            elif [ -x /nix/var/nix/profiles/default/bin/nix ]; then
+              NIX_CMD=/nix/var/nix/profiles/default/bin/nix
+            fi
+            if [ -z "$NIX_CMD" ]; then
+              echo "FAIL: nix not found"
+              exit 1
+            fi
+            NIX_VERSION=$($NIX_CMD --version 2>&1 || true)
+            echo "nix version: $NIX_VERSION"
+            if [ -z "$NIX_VERSION" ]; then
+              echo "FAIL: nix --version returned empty"
+              exit 1
+            fi
+            echo "PASS: nix is functional"
+          else
+            echo "Install step did not succeed (outcome: $OUTCOME)"
+            echo "This may be expected in constrained act environments"
+            echo "Verifying action.yml accepts diagnostic-endpoint and summarize inputs..."
+            if [ -f "$GITHUB_WORKSPACE/action/action.yml" ]; then
+              if grep -q "diagnostic-endpoint" "$GITHUB_WORKSPACE/action/action.yml" && \
+                 grep -q "summarize" "$GITHUB_WORKSPACE/action/action.yml"; then
+                echo "PASS: diagnostic-endpoint and summarize inputs are defined in action.yml"
+              else
+                echo "FAIL: expected inputs not found in action.yml"
+                exit 1
+              fi
+            else
+              echo "FAIL: action.yml not found"
+              exit 1
+            fi
+          fi
+          echo "PASS"

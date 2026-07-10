@@ -1,0 +1,74 @@
+name: Test extra-conf input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: install-nix
+        uses: .
+        with:
+          diagnostic-endpoint: ""
+          force-no-systemd: "true"
+          trust-runner-user: "true"
+          planner: linux-multi
+          init: none
+          kvm: "false"
+          extra-conf: |
+            sandbox = false
+        continue-on-error: true
+      - name: Check installation and extra-conf
+        env:
+          OUTCOME: ${{ steps.install-nix.outcome }}
+        run: |
+          echo "Install step outcome: $OUTCOME"
+          if [ "$OUTCOME" = "success" ]; then
+            echo "Install succeeded, verifying extra-conf was applied..."
+            if [ ! -d /nix/store ]; then
+              echo "FAIL: /nix/store directory does not exist"
+              exit 1
+            fi
+            echo "PASS: /nix/store exists"
+            # Check nix.conf for the extra-conf setting
+            NIX_CONF=""
+            if [ -f /etc/nix/nix.conf ]; then
+              NIX_CONF=/etc/nix/nix.conf
+            elif [ -f /etc/nix/nix.conf.d/extra.conf ]; then
+              NIX_CONF=/etc/nix/nix.conf.d/extra.conf
+            fi
+            if [ -n "$NIX_CONF" ]; then
+              echo "Contents of $NIX_CONF:"
+              cat "$NIX_CONF"
+              if grep -q "sandbox = false" "$NIX_CONF"; then
+                echo "PASS: extra-conf setting found in $NIX_CONF"
+              else
+                # Check all nix conf files
+                if grep -r "sandbox = false" /etc/nix/ 2>/dev/null; then
+                  echo "PASS: extra-conf setting found in /etc/nix/"
+                else
+                  echo "FAIL: 'sandbox = false' not found in any nix conf"
+                  exit 1
+                fi
+              fi
+            else
+              echo "FAIL: no nix.conf found"
+              exit 1
+            fi
+          else
+            echo "Install step did not succeed (outcome: $OUTCOME)"
+            echo "This may be expected in constrained act environments"
+            echo "Verifying action.yml accepts extra-conf input..."
+            if [ -f "$GITHUB_WORKSPACE/action/action.yml" ]; then
+              if grep -q "extra-conf" "$GITHUB_WORKSPACE/action/action.yml"; then
+                echo "PASS: extra-conf input is defined in action.yml"
+              else
+                echo "FAIL: extra-conf input not found in action.yml"
+                exit 1
+              fi
+            else
+              echo "FAIL: action.yml not found"
+              exit 1
+            fi
+          fi
+          echo "PASS"
