@@ -1,0 +1,34 @@
+name: Test extra-conf is applied
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install Determinate Nix with extra-conf
+        id: action
+        uses: .
+        with:
+          diagnostic-endpoint: ""
+          extra-conf: |
+            max-jobs = 2
+          _internal-strict-mode: true
+      - name: Assert nix is installed
+        run: |
+          echo "Checking nix binary..."
+          if ! command -v nix >/dev/null 2>&1; then
+            echo "FAIL: nix command not found"
+            exit 1
+          fi
+          echo "PASS: nix command found"
+      - name: Assert extra-conf was applied
+        run: |
+          echo "Checking /etc/nix/nix.conf for extra-conf setting..."
+          if ! grep -q "max-jobs" /etc/nix/nix.conf 2>/dev/null; then
+            echo "Contents of /etc/nix/nix.conf:"
+            cat /etc/nix/nix.conf 2>/dev/null || echo "(file not found)"
+            echo "FAIL: expected 'max-jobs' setting not found in /etc/nix/nix.conf"
+            exit 1
+          fi
+          echo "PASS: extra-conf setting found in /etc/nix/nix.conf"

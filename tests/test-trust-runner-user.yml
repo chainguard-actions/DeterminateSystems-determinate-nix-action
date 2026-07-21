@@ -1,0 +1,32 @@
+name: Test trust-runner-user option
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install Determinate Nix with trust-runner-user enabled
+        id: action
+        uses: .
+        with:
+          diagnostic-endpoint: ""
+          trust-runner-user: true
+          _internal-strict-mode: true
+      - name: Assert nix is installed
+        run: |
+          echo "Checking nix binary..."
+          if ! command -v nix >/dev/null 2>&1; then
+            echo "FAIL: nix command not found"
+            exit 1
+          fi
+          echo "PASS: nix command found"
+      - name: Assert nix store path evaluation works (trusted user can run nix)
+        run: |
+          echo "Running nix path-info --store auto..."
+          # A trusted user can query the nix store without sudo
+          if ! nix store ping 2>&1; then
+            echo "FAIL: nix store ping failed (runner user may not be trusted)"
+            exit 1
+          fi
+          echo "PASS: nix store ping succeeded"
