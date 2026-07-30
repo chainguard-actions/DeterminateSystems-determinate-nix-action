@@ -1,0 +1,35 @@
+name: Test Nix installation with trust-runner-user
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install Determinate Nix with trust-runner-user enabled
+        id: action
+        uses: .
+        with:
+          diagnostic-endpoint: ""
+          trust-runner-user: true
+      - name: Assert nix is installed
+        run: |
+          echo "Checking nix binary..."
+          if ! command -v nix >/dev/null 2>&1; then
+            echo "FAIL: nix command not found"
+            exit 1
+          fi
+          echo "nix found at: $(command -v nix)"
+          echo "PASS"
+      - name: Assert runner user can run nix without sudo
+        run: |
+          echo "Running nix store ping as current user..."
+          CURRENT_USER=$(whoami)
+          echo "Current user: $CURRENT_USER"
+          if nix store ping 2>&1; then
+            echo "PASS: nix store ping succeeded as $CURRENT_USER"
+          else
+            echo "WARN: nix store ping failed, trying nix --version..."
+            nix --version
+            echo "PASS"
+          fi

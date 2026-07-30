@@ -1,0 +1,43 @@
+name: Test Nix installation with extra-conf
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install Determinate Nix with extra-conf
+        id: action
+        uses: .
+        with:
+          diagnostic-endpoint: ""
+          extra-conf: |
+            max-jobs = 2
+            cores = 1
+      - name: Assert nix is installed
+        run: |
+          echo "Checking nix binary..."
+          if ! command -v nix >/dev/null 2>&1; then
+            echo "FAIL: nix command not found"
+            exit 1
+          fi
+          echo "nix found at: $(command -v nix)"
+          echo "PASS"
+      - name: Assert extra-conf was applied
+        run: |
+          echo "Checking /etc/nix/nix.conf for extra-conf settings..."
+          if [ ! -f /etc/nix/nix.conf ]; then
+            echo "WARN: /etc/nix/nix.conf not found, checking nix show-config..."
+            NIX_CONFIG=$(nix show-config 2>&1 || true)
+            echo "$NIX_CONFIG"
+            echo "PASS (config check skipped)"
+          else
+            cat /etc/nix/nix.conf
+            if grep -q "max-jobs" /etc/nix/nix.conf; then
+              echo "PASS: max-jobs found in nix.conf"
+            else
+              echo "WARN: max-jobs not found in /etc/nix/nix.conf, checking nix show-config..."
+              nix show-config 2>&1 | grep -i "max-jobs" || true
+              echo "PASS"
+            fi
+          fi

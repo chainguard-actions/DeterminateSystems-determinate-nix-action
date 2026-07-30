@@ -1,0 +1,41 @@
+name: Test basic Nix installation
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install Determinate Nix
+        id: action
+        uses: .
+        with:
+          diagnostic-endpoint: ""
+      - name: Assert nix is installed
+        run: |
+          echo "Checking nix binary..."
+          if ! command -v nix >/dev/null 2>&1; then
+            echo "FAIL: nix command not found"
+            exit 1
+          fi
+          echo "nix found at: $(command -v nix)"
+          echo "PASS"
+      - name: Assert nix version
+        run: |
+          echo "Checking nix version..."
+          NIX_VERSION=$(nix --version 2>&1 || true)
+          echo "nix version: $NIX_VERSION"
+          if [ -z "$NIX_VERSION" ]; then
+            echo "FAIL: nix --version returned empty"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert nix store is accessible
+        run: |
+          echo "Checking /nix/store..."
+          if [ ! -d /nix/store ]; then
+            echo "FAIL: /nix/store directory not found"
+            exit 1
+          fi
+          echo "/nix/store exists"
+          echo "PASS"
