@@ -1,0 +1,34 @@
+name: Test Nix installation without trusting runner user
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: install-nix
+        name: Install Determinate Nix without trusting runner user
+        uses: .
+        with:
+          trust-runner-user: "false"
+          diagnostic-endpoint: ""
+          _internal-strict-mode: "false"
+
+      - name: Assert nix binary is available
+        run: |
+          echo "Checking for nix binary..."
+          if ! command -v nix &>/dev/null; then
+            echo "FAIL: nix binary not found on PATH"
+            exit 1
+          fi
+          echo "PASS: nix binary found at $(command -v nix)"
+
+      - name: Assert nix store directory exists
+        run: |
+          echo "Checking /nix/store..."
+          if [ ! -d /nix/store ]; then
+            echo "FAIL: /nix/store directory does not exist"
+            exit 1
+          fi
+          echo "PASS: /nix/store exists"
