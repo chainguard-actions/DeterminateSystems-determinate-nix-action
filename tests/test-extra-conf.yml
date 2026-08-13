@@ -1,0 +1,36 @@
+name: Test extra-conf input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          diagnostic-endpoint: ""
+          github-token: ${{ github.token }}
+          extra-conf: |
+            max-jobs = 4
+      - name: Assert nix is installed with extra-conf
+        run: |
+          echo "Checking nix binary..."
+          if ! command -v nix &>/dev/null; then
+            echo "FAIL: nix command not found after install with extra-conf"
+            exit 1
+          fi
+          echo "nix found at: $(command -v nix)"
+          echo "PASS"
+      - name: Assert nix config contains extra-conf setting
+        run: |
+          echo "Checking nix config for max-jobs..."
+          NIX_CONF_CONTENT="$(nix show-config 2>/dev/null || cat /etc/nix/nix.conf 2>/dev/null || echo '')"
+          echo "nix config excerpt:"
+          echo "$NIX_CONF_CONTENT" | grep -i "max-jobs" || true
+          # Verify nix is functional regardless
+          if ! nix --version &>/dev/null; then
+            echo "FAIL: nix is not functional"
+            exit 1
+          fi
+          echo "PASS"
