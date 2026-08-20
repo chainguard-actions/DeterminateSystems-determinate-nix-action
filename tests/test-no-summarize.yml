@@ -1,0 +1,41 @@
+name: Test Nix installation with summarize disabled
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: install-nix
+        uses: .
+        with:
+          diagnostic-endpoint: ""
+          force-no-systemd: true
+          trust-runner-user: true
+          kvm: false
+          summarize: false
+      - name: Assert nix is installed
+        run: |
+          echo "Checking nix binary..."
+          if ! command -v nix >/dev/null 2>&1; then
+            if [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+              . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+            elif [ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
+              . "$HOME/.nix-profile/etc/profile.d/nix.sh"
+            fi
+          fi
+          NIX_PATH="$(command -v nix 2>/dev/null || echo '')"
+          echo "nix path: $NIX_PATH"
+          if [ -z "$NIX_PATH" ]; then
+            echo "FAIL: nix binary not found after installation"
+            exit 1
+          fi
+          echo "PASS: nix is installed at $NIX_PATH"
+      - name: Assert nix store exists
+        run: |
+          echo "Checking /nix/store..."
+          if [ ! -d /nix/store ]; then
+            echo "FAIL: /nix/store directory does not exist"
+            exit 1
+          fi
+          echo "PASS: /nix/store exists"
