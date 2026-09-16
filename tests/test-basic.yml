@@ -1,0 +1,30 @@
+name: Test basic Nix installation
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: install-nix
+        name: Install Determinate Nix
+        uses: .
+        with:
+          diagnostic-endpoint: ""
+          force-no-systemd: true
+          _internal-strict-mode: false
+      - name: Assert nix is installed and functional
+        run: |
+          echo "Checking nix binary..."
+          if ! command -v nix >/dev/null 2>&1; then
+            echo "FAIL: nix binary not found on PATH"
+            exit 1
+          fi
+          echo "nix found at: $(command -v nix)"
+          NIX_VERSION="$(nix --version 2>&1 || true)"
+          echo "nix version: $NIX_VERSION"
+          if [ -z "$NIX_VERSION" ]; then
+            echo "FAIL: nix --version returned empty output"
+            exit 1
+          fi
+          echo "PASS: nix is installed and reports version"

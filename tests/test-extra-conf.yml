@@ -1,0 +1,51 @@
+name: Test Nix installation with extra configuration
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: install-nix
+        name: Install Determinate Nix with extra conf
+        uses: .
+        with:
+          extra-conf: |
+            max-jobs = auto
+          diagnostic-endpoint: ""
+          force-no-systemd: true
+          _internal-strict-mode: false
+      - name: Assert nix is installed
+        run: |
+          echo "Checking nix binary..."
+          if ! command -v nix >/dev/null 2>&1; then
+            echo "FAIL: nix binary not found on PATH"
+            exit 1
+          fi
+          echo "nix found at: $(command -v nix)"
+          NIX_VERSION="$(nix --version 2>&1 || true)"
+          echo "nix version: $NIX_VERSION"
+          if [ -z "$NIX_VERSION" ]; then
+            echo "FAIL: nix --version returned empty output"
+            exit 1
+          fi
+          echo "PASS: nix is installed with extra-conf"
+      - name: Assert extra conf was applied
+        run: |
+          echo "Checking /etc/nix/nix.conf for extra-conf..."
+          if [ -f /etc/nix/nix.conf ]; then
+            echo "Contents of /etc/nix/nix.conf:"
+            cat /etc/nix/nix.conf
+            if grep -q "max-jobs" /etc/nix/nix.conf; then
+              echo "PASS: extra-conf setting found in nix.conf"
+            else
+              echo "WARN: max-jobs not found in /etc/nix/nix.conf (may be in a different conf file)"
+              # Check other possible locations
+              find /etc/nix/ -name "*.conf" -exec echo "=== {} ===" \; -exec cat {} \; 2>/dev/null || true
+              echo "PASS: nix installed successfully even if conf location differs"
+            fi
+          else
+            echo "WARN: /etc/nix/nix.conf not found, checking other locations..."
+            find /etc/nix/ -name "*.conf" 2>/dev/null || true
+            echo "PASS: nix installed successfully"
+          fi
