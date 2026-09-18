@@ -1,0 +1,38 @@
+name: Test Nix evaluation after installation
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          force-no-systemd: true
+          diagnostic-endpoint: ""
+          github-token: ${{ github.token }}
+          trust-runner-user: true
+      - name: Assert nix can evaluate an expression
+        run: |
+          echo "Testing nix eval..."
+          RESULT="$(nix eval --impure --expr 'builtins.currentSystem' 2>&1)"
+          echo "nix eval result: $RESULT"
+          if [ -z "$RESULT" ]; then
+            echo "FAIL: nix eval returned empty result"
+            exit 1
+          fi
+          # Should contain a system string like x86_64-linux
+          if ! echo "$RESULT" | grep -q "linux\|darwin"; then
+            echo "FAIL: nix eval did not return a recognizable system string: $RESULT"
+            exit 1
+          fi
+          echo "PASS: nix eval works, current system: $RESULT"
+      - name: Assert nix show-config works
+        run: |
+          echo "Testing nix show-config..."
+          if ! nix show-config >/dev/null 2>&1; then
+            echo "FAIL: nix show-config failed"
+            exit 1
+          fi
+          echo "PASS: nix show-config succeeded"

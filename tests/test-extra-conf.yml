@@ -1,0 +1,40 @@
+name: Test Nix installation with extra configuration
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          force-no-systemd: true
+          diagnostic-endpoint: ""
+          github-token: ${{ github.token }}
+          extra-conf: |
+            max-jobs = 2
+            cores = 1
+      - name: Assert nix is installed
+        run: |
+          echo "Checking nix binary..."
+          if ! command -v nix >/dev/null 2>&1; then
+            echo "FAIL: nix command not found after installation"
+            exit 1
+          fi
+          NIX_VERSION="$(nix --version)"
+          echo "nix version: $NIX_VERSION"
+          echo "PASS: nix is installed"
+      - name: Assert extra conf is applied
+        run: |
+          echo "Checking /etc/nix/nix.conf for extra configuration..."
+          if [ ! -f /etc/nix/nix.conf ]; then
+            echo "FAIL: /etc/nix/nix.conf does not exist"
+            exit 1
+          fi
+          cat /etc/nix/nix.conf
+          if ! grep -q "max-jobs" /etc/nix/nix.conf; then
+            echo "FAIL: extra-conf 'max-jobs' not found in /etc/nix/nix.conf"
+            exit 1
+          fi
+          echo "PASS: extra configuration is present in nix.conf"

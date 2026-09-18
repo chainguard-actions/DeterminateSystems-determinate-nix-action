@@ -1,0 +1,36 @@
+name: Test basic Nix installation
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          force-no-systemd: true
+          diagnostic-endpoint: ""
+          github-token: ${{ github.token }}
+      - name: Assert nix is installed
+        run: |
+          echo "Checking nix binary..."
+          if ! command -v nix >/dev/null 2>&1; then
+            echo "FAIL: nix command not found after installation"
+            exit 1
+          fi
+          NIX_VERSION="$(nix --version)"
+          echo "nix version: $NIX_VERSION"
+          if [ -z "$NIX_VERSION" ]; then
+            echo "FAIL: nix --version returned empty string"
+            exit 1
+          fi
+          echo "PASS: nix is installed: $NIX_VERSION"
+      - name: Assert nix store exists
+        run: |
+          echo "Checking /nix/store..."
+          if [ ! -d /nix/store ]; then
+            echo "FAIL: /nix/store directory does not exist"
+            exit 1
+          fi
+          echo "PASS: /nix/store exists"
