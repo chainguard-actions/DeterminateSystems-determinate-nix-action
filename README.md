@@ -23,6 +23,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | v3.22.4 | [`v3.22.4`](https://github.com/chainguard-actions/DeterminateSystems-determinate-nix-action/tree/v3.22.4) | [`58b42ef`](https://github.com/DeterminateSystems/determinate-nix-action/commit/58b42ef6cd91478a14253e00805ec7c79eb1566a) |
 | v3.22.5 | [`v3.22.5`](https://github.com/chainguard-actions/DeterminateSystems-determinate-nix-action/tree/v3.22.5) | [`8d87e8d`](https://github.com/DeterminateSystems/determinate-nix-action/commit/8d87e8d5e5b8a8309d4281094560f127d9a265f1) |
 | v3.23.0 | [`v3.23.0`](https://github.com/chainguard-actions/DeterminateSystems-determinate-nix-action/tree/v3.23.0) | [`4d65ea9`](https://github.com/DeterminateSystems/determinate-nix-action/commit/4d65ea9cab522b6d9f29a170aed23ededc1b27af) |
+| v3.23.1 | [`v3.23.1`](https://github.com/chainguard-actions/DeterminateSystems-determinate-nix-action/tree/v3.23.1) | [`d0c908e`](https://github.com/DeterminateSystems/determinate-nix-action/commit/d0c908e6cbe9f89f36ed8205a3ab6f092636916a) |
 
 ## Privacy
 
