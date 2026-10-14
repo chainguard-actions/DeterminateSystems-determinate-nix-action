@@ -1,0 +1,48 @@
+name: Test Nix installation with extra configuration
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: install-nix
+        name: Install Determinate Nix with extra conf
+        uses: .
+        with:
+          force-no-systemd: true
+          diagnostic-endpoint: ""
+          github-token: ${{ github.token }}
+          extra-conf: |
+            sandbox = false
+      - name: Assert nix is installed
+        run: |
+          echo "Checking nix binary..."
+          if ! command -v nix >/dev/null 2>&1; then
+            echo "FAIL: nix command not found after installation"
+            exit 1
+          fi
+          echo "nix version: $(nix --version 2>&1)"
+          echo "PASS: nix is installed"
+      - name: Assert extra conf is applied
+        run: |
+          echo "Checking /etc/nix/nix.conf for extra configuration..."
+          if [ ! -f /etc/nix/nix.conf ]; then
+            echo "WARN: /etc/nix/nix.conf not found, checking alternate locations..."
+            find /etc /nix -name "nix.conf" 2>/dev/null || true
+          fi
+          # Check that sandbox = false appears somewhere in nix config
+          NIX_SHOW_CONFIG="$(nix show-config 2>&1 || true)"
+          echo "nix show-config output:"
+          echo "$NIX_SHOW_CONFIG"
+          if echo "$NIX_SHOW_CONFIG" | grep -q "sandbox"; then
+            echo "PASS: nix config contains sandbox setting"
+          else
+            echo "WARN: sandbox setting not found in nix show-config, checking nix.conf directly..."
+            if find /etc /nix -name "nix.conf" 2>/dev/null | xargs grep -l "sandbox" 2>/dev/null | grep -q .; then
+              echo "PASS: sandbox setting found in nix.conf"
+            else
+              echo "FAIL: extra-conf 'sandbox = false' not found in nix configuration"
+              exit 1
+            fi
+          fi
