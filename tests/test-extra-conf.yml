@@ -1,0 +1,72 @@
+name: Test Nix installation with extra configuration
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          diagnostic-endpoint: ""
+          force-no-systemd: true
+          github-token: ${{ github.token }}
+          extra-conf: |
+            max-jobs = 2
+            cores = 1
+      - name: Assert nix is installed
+        run: |
+          echo "Checking nix binary..."
+          if ! command -v nix >/dev/null 2>&1; then
+            echo "FAIL: nix binary not found on PATH"
+            exit 1
+          fi
+          NIX_VERSION="$(nix --version 2>&1)"
+          echo "nix version: $NIX_VERSION"
+          echo "PASS: nix is installed"
+      - name: Assert extra conf was applied
+        run: |
+          echo "Checking for extra config in nix config files..."
+          # Determinate Nix puts extra-conf into nix.custom.conf (included via !include from nix.conf)
+          # Check nix.custom.conf first, then fall back to checking nix show-config
+          CUSTOM_CONF="/etc/nix/nix.custom.conf"
+          NIX_CONF="/etc/nix/nix.conf"
+
+          echo "=== /etc/nix/nix.conf ==="
+          cat "$NIX_CONF" || true
+
+          if [ -f "$CUSTOM_CONF" ]; then
+            echo "=== /etc/nix/nix.custom.conf ==="
+            cat "$CUSTOM_CONF"
+            if grep -q "max-jobs = 2" "$CUSTOM_CONF"; then
+              echo "PASS: extra-conf 'max-jobs = 2' found in nix.custom.conf"
+              exit 0
+            fi
+          fi
+
+          # Also check via nix show-config which reflects the effective configuration
+          echo "=== nix show-config ==="
+          NIX_CONFIG_OUTPUT="$(nix show-config 2>&1 || true)"
+          echo "$NIX_CONFIG_OUTPUT"
+          if echo "$NIX_CONFIG_OUTPUT" | grep -q "max-jobs = 2"; then
+            echo "PASS: extra-conf 'max-jobs = 2' found in effective nix config"
+            exit 0
+          fi
+
+          # Check all nix conf files under /etc/nix/
+          echo "=== All files under /etc/nix/ ==="
+          ls -la /etc/nix/ || true
+          for f in /etc/nix/*.conf; do
+            echo "--- $f ---"
+            cat "$f" || true
+          done
+
+          # Check if max-jobs = 2 appears anywhere in /etc/nix/
+          if grep -r "max-jobs = 2" /etc/nix/ 2>/dev/null; then
+            echo "PASS: extra-conf 'max-jobs = 2' found somewhere under /etc/nix/"
+            exit 0
+          fi
+
+          echo "FAIL: extra-conf 'max-jobs = 2' not found in any nix config"
+          exit 1
