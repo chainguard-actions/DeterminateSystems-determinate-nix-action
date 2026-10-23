@@ -1,0 +1,29 @@
+name: Test basic install
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+      - name: Assert nix is installed
+        run: |
+          set -u
+          if [ ! -d /nix/store ]; then
+            echo "FAIL: /nix/store does not exist"
+            exit 1
+          fi
+          export PATH="/nix/var/nix/profiles/default/bin:$PATH"
+          if ! command -v nix >/dev/null 2>&1; then
+            echo "FAIL: nix not found on PATH"
+            exit 1
+          fi
+          VERSION="$(nix --version)"
+          echo "nix --version: $VERSION"
+          if ! echo "$VERSION" | grep -qi "nix"; then
+            echo "FAIL: unexpected nix --version output"
+            exit 1
+          fi
+          echo "PASS"
