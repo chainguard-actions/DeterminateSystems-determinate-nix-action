@@ -1,0 +1,49 @@
+name: Test basic install
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          kvm: false
+          summarize: false
+      - name: Assert Nix is installed
+        run: |
+          NIX=/nix/var/nix/profiles/default/bin/nix
+          if [ ! -x "$NIX" ]; then
+            echo "FAIL: $NIX not found"
+            ls -la /nix/var/nix/profiles/default/bin || true
+            exit 1
+          fi
+          VERSION="$("$NIX" --version)"
+          echo "nix --version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: empty nix version"
+            exit 1
+          fi
+          if ! echo "$VERSION" | grep -qi "determinate"; then
+            echo "FAIL: expected Determinate Nix, got '$VERSION'"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert nix is on PATH
+        run: |
+          echo "PATH: $PATH"
+          if ! command -v nix >/dev/null 2>&1; then
+            echo "FAIL: nix not on PATH"
+            exit 1
+          fi
+          nix --version
+          echo "PASS"
+      - name: Assert nix.conf exists
+        run: |
+          if [ ! -f /etc/nix/nix.conf ]; then
+            echo "FAIL: /etc/nix/nix.conf missing"
+            exit 1
+          fi
+          cat /etc/nix/nix.conf
+          echo "PASS"

@@ -1,0 +1,43 @@
+name: Test extra-conf
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          kvm: false
+          summarize: false
+          extra-conf: |
+            max-jobs = 7
+            keep-outputs = true
+      - name: Assert extra-conf written to nix config
+        run: |
+          echo "--- /etc/nix/nix.conf ---"
+          cat /etc/nix/nix.conf || true
+          for f in /etc/nix/nix.custom.conf; do
+            [ -f "$f" ] && { echo "--- $f ---"; cat "$f"; }
+          done
+          ALL="$(cat /etc/nix/nix.conf /etc/nix/*.conf 2>/dev/null)"
+          if ! echo "$ALL" | grep -qE '^\s*max-jobs\s*=\s*7'; then
+            echo "FAIL: max-jobs = 7 not found in nix config"
+            exit 1
+          fi
+          if ! echo "$ALL" | grep -qE '^\s*keep-outputs\s*=\s*true'; then
+            echo "FAIL: keep-outputs = true not found in nix config"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert nix reads the setting
+        run: |
+          NIX=/nix/var/nix/profiles/default/bin/nix
+          VAL="$("$NIX" config show max-jobs 2>/dev/null || "$NIX" show-config 2>/dev/null | grep '^max-jobs' | awk '{print $3}')"
+          echo "max-jobs: $VAL"
+          if [ "$VAL" != "7" ]; then
+            echo "FAIL: expected max-jobs 7"
+            exit 1
+          fi
+          echo "PASS"

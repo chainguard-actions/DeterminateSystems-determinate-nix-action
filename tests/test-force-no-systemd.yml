@@ -1,0 +1,35 @@
+name: Test force-no-systemd
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          force-no-systemd: true
+          trust-runner-user: true
+          kvm: false
+          summarize: false
+      - name: Assert Nix works without systemd
+        run: |
+          NIX=/nix/var/nix/profiles/default/bin/nix
+          if [ ! -x "$NIX" ]; then
+            echo "FAIL: $NIX not found"
+            exit 1
+          fi
+          VERSION="$("$NIX" --version)"
+          echo "nix --version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: empty version"
+            exit 1
+          fi
+          OUT="$("$NIX" eval --expr '1 + 2')"
+          echo "nix eval: $OUT"
+          if [ "$OUT" != "3" ]; then
+            echo "FAIL: expected 3"
+            exit 1
+          fi
+          echo "PASS"
