@@ -1,6 +1,11 @@
 {
   "owner": "DeterminateSystems",
   "repo": "determinate-nix-action",
-  "version": "",
-  "url": "https://github.com/DeterminateSystems/determinate-nix-action"
+  "version": "v3.24.2",
+  "commit_sha": "16f94ba7aae399b9f9077c254b6719ec6de7e3e3",
+  "url": "https://github.com/DeterminateSystems/determinate-nix-action",
+  "policy_sha": "d636be7e43ef829af6e853da6b3c7566db9f72fe",
+  "test_policy_sha": "843adf9e4b8f85d0c08b27b9d0b09dd094b54702",
+  "test_agent_version": "2",
+  "harden_agent_version": "2"
 }

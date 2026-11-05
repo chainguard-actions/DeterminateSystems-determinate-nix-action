@@ -1,0 +1,24 @@
+name: Test extra-conf
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          summarize: "false"
+          diagnostic-endpoint: ""
+          extra-conf: |
+            max-jobs = 3
+      - name: Assert extra-conf written to nix config
+        run: |
+          ls -la /etc/nix || true
+          for f in /etc/nix/*.conf; do echo "== $f"; cat "$f"; done
+          if ! grep -qE '^\s*max-jobs\s*=\s*3' /etc/nix/*.conf; then
+            echo "FAIL: 'max-jobs = 3' not found in /etc/nix/*.conf"
+            exit 1
+          fi
+          echo "PASS"
