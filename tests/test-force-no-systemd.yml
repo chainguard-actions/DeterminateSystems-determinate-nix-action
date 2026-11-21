@@ -1,0 +1,30 @@
+name: Test force-no-systemd install
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          force-no-systemd: true
+          kvm: false
+          summarize: false
+          trust-runner-user: false
+          diagnostic-endpoint: ""
+      - name: Assert nix can evaluate an expression
+        run: |
+          NIX="$(command -v nix || echo /nix/var/nix/profiles/default/bin/nix)"
+          if [ ! -x "$NIX" ] && ! command -v "$NIX" >/dev/null; then
+            echo "FAIL: nix not found"
+            exit 1
+          fi
+          RESULT="$($NIX eval --expr '1 + 2')"
+          echo "result: $RESULT"
+          if [ "$RESULT" != "3" ]; then
+            echo "FAIL: expected 3"
+            exit 1
+          fi
+          echo "PASS"

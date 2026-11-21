@@ -1,0 +1,35 @@
+name: Test extra-conf is written
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          kvm: false
+          summarize: false
+          diagnostic-endpoint: ""
+          extra-conf: |
+            keep-outputs = true
+      - name: Assert extra-conf landed in nix configuration
+        run: |
+          ls -la /etc/nix || true
+          cat /etc/nix/*.conf || true
+          if ! grep -qsE '^\s*keep-outputs\s*=\s*true' /etc/nix/*.conf; then
+            echo "FAIL: keep-outputs = true not found in /etc/nix/*.conf"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert nix reports the setting
+        run: |
+          NIX="$(command -v nix || echo /nix/var/nix/profiles/default/bin/nix)"
+          VALUE="$($NIX config show keep-outputs 2>/dev/null || $NIX show-config 2>/dev/null | sed -n 's/^keep-outputs = //p')"
+          echo "keep-outputs: $VALUE"
+          if [ "$(echo "$VALUE" | tr -d '[:space:]')" != "true" ]; then
+            echo "FAIL: expected keep-outputs = true"
+            exit 1
+          fi
+          echo "PASS"

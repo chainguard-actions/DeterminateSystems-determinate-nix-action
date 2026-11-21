@@ -1,0 +1,38 @@
+name: Test basic install
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          kvm: false
+          diagnostic-endpoint: ""
+      - name: Assert nix is installed and runs
+        run: |
+          if command -v nix >/dev/null 2>&1; then
+            NIX=nix
+          elif [ -x /nix/var/nix/profiles/default/bin/nix ]; then
+            NIX=/nix/var/nix/profiles/default/bin/nix
+          else
+            echo "FAIL: nix binary not found"
+            exit 1
+          fi
+          VERSION="$($NIX --version)"
+          echo "nix version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: empty nix --version output"
+            exit 1
+          fi
+          if [ ! -d /nix/store ]; then
+            echo "FAIL: /nix/store missing"
+            exit 1
+          fi
+          if [ ! -f /etc/nix/nix.conf ]; then
+            echo "FAIL: /etc/nix/nix.conf missing"
+            exit 1
+          fi
+          echo "PASS"
