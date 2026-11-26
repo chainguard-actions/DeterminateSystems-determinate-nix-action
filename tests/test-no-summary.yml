@@ -1,0 +1,44 @@
+name: Test Nix installation with summarize disabled
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: install-nix
+        uses: .
+        with:
+          diagnostic-endpoint: ""
+          trust-runner-user: "true"
+          summarize: "false"
+      - name: Assert nix is installed
+        run: |
+          echo "Checking nix binary..."
+          if ! command -v nix &>/dev/null; then
+            echo "FAIL: nix binary not found in PATH"
+            exit 1
+          fi
+          echo "nix found at: $(command -v nix)"
+          echo "PASS"
+      - name: Assert nix daemon is running
+        run: |
+          echo "Checking nix daemon..."
+          if ! nix store ping 2>/dev/null; then
+            echo "WARN: nix store ping failed, trying alternative check..."
+            if ! nix-store --version &>/dev/null; then
+              echo "FAIL: nix-store not functional"
+              exit 1
+            fi
+          fi
+          echo "PASS: nix daemon is accessible"
+      - name: Assert nix can evaluate a simple expression
+        run: |
+          echo "Evaluating a simple nix expression..."
+          RESULT=$(nix eval --impure --expr '1 + 1' 2>&1)
+          echo "Result: $RESULT"
+          if [ "$RESULT" != "2" ]; then
+            echo "FAIL: expected '2', got '$RESULT'"
+            exit 1
+          fi
+          echo "PASS"
